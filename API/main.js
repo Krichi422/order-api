@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cors = require('cors'); // Import the cors package
 const { QuickDB } = require('quick.db'); // Import QuickDB
 const app = express();
 const port = process.env.PORT || 8000; // API will run on port 8000 by default
@@ -7,6 +8,11 @@ const port = process.env.PORT || 8000; // API will run on port 8000 by default
 // Initialize quick.db specifically for shared order data
 // This will connect to the shared 'orders.sqlite' file
 const ordersDb = new QuickDB();
+
+// --- CORS Middleware ---
+// Allow all origins for development. For production, you should restrict this
+// to specific domains where your frontend is hosted, e.g., { origin: 'https://your-framer-site.framer.app' }
+app.use(cors());
 
 // Middleware to parse JSON request bodies
 app.use(bodyParser.json());
