@@ -1,20 +1,52 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { QuickDB } = require('quick.db'); // Import QuickDB
+const cors = require('cors');
+const { QuickDB } = require('quick.db');
 const app = express();
-const port = process.env.PORT || 8000; // API will run on port 8000 by default
+const port = process.env.PORT || 8000;
 
-// Initialize quick.db specifically for shared order data
-// This will connect to the shared 'orders.sqlite' file
 const ordersDb = new QuickDB();
 
-// Middleware to parse JSON request bodies
-app.use(bodyParser.json());
-app.use(express.json()); // For Express 4.16+
+const corsOptions = {
+  origin: 'https://krichi.xyz',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  optionsSuccessStatus: 200
+};
 
-// --- Database Initialization (for orders, if needed) ---
-// This function ensures the 'ordersList' key exists in the shared DB
-// It's a safety check; the bot is the primary manager for this list.
+app.use(cors(corsOptions));
+
+app.use((req, res, next) => {
+    const referer = req.headers.referer;
+
+    console.log(`Incoming Referer: ${referer || 'None'}`);
+
+    if (!referer) {
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
+        console.warn('Referer header missing for non-OPTIONS request.');
+        return res.status(403).json({ message: 'Forbidden: Referer header missing.' });
+    }
+
+    try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.hostname === 'krichi.xyz') {
+            next();
+        } else {
+            // Referer is not from the allowed domain, block
+            console.warn(`Blocked request from disallowed referer: ${referer}`);
+            res.status(403).json({ message: 'Forbidden: Invalid Referer.' });
+        }
+    } catch (e) {
+        // Handle cases where the referer header might not be a valid URL
+        console.error(`Error parsing Referer header: ${referer}`, e);
+        res.status(403).json({ message: 'Forbidden: Malformed Referer.' });
+    }
+});
+
+app.use(bodyParser.json());
+app.use(express.json());
+
 async function initializeDatabase() {
     if (!(await ordersDb.has('ordersList'))) {
         await ordersDb.set('ordersList', []);
@@ -22,21 +54,11 @@ async function initializeDatabase() {
     }
 }
 
-// --- API Endpoints ---
-
-// Root endpoint
 app.get('/', async (req, res) => {
-    /**
-     * Root endpoint: Returns a simple welcome message for the Orders API.
-     */
-    res.json({"status": "Node.js Orders API is running!"});
+    res.json({"status": "Hi!"});
 });
 
-// Get a specific order by ID from the shared orders database
 app.get('/orders/:orderId', async (req, res) => {
-    /**
-     * Returns details of a specific order by its ID from the shared orders.sqlite.
-     */
     const orderId = req.params.orderId;
     try {
         const allOrders = await ordersDb.get('ordersList');
@@ -56,11 +78,7 @@ app.get('/orders/:orderId', async (req, res) => {
     }
 });
 
-// Get all orders from the shared orders database
 app.get('/orders', async (req, res) => {
-    /**
-     * Returns a list of all orders from the shared orders.sqlite.
-     */
     try {
         const orders = await ordersDb.get('ordersList');
         res.json(orders || []);
@@ -70,24 +88,19 @@ app.get('/orders', async (req, res) => {
     }
 });
 
-
-// Echo endpoint (kept for general utility, not tied to specific data)
 app.post('/echo', async (req, res) => {
-    /**
-     * Echoes back the JSON data sent in the request body.
-     */
     if (req.body) {
         return res.json(req.body);
     }
     res.status(400).json({"error": "Request must be JSON"});
 });
 
-// Start the server after initializing the orders database
+
 initializeDatabase().then(() => {
     app.listen(port, '0.0.0.0', () => {
         console.log(`Node.js Orders API listening at http://0.0.0.0:${port}`);
     });
 }).catch(err => {
     console.error('Failed to initialize Orders database:', err);
-    process.exit(1); // Exit if database initialization fails
+    process.exit(1);
 });

@@ -39,18 +39,16 @@ async function loadCommands(client) {
  * @param {string | undefined} guildId Optional: Guild ID for guild-specific commands.
  */
 async function registerCommands(client, clientId, guildId) {
-    const rest = new REST().setToken(client.token); // Use client.token directly
+    const rest = new REST().setToken(client.token);
 
     try {
         if (guildId) {
-            // For guild-specific commands (faster for testing)
             await rest.put(
                 Routes.applicationGuildCommands(clientId, guildId),
                 { body: commands },
             );
             console.log(`Successfully reloaded guild (/) commands for guild ID: ${guildId}`);
         } else {
-            // For global commands (takes up to an hour to propagate)
             await rest.put(
                 Routes.applicationCommands(clientId),
                 { body: commands },
