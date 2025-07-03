@@ -51,14 +51,14 @@ module.exports = {
 
             newOrder.updates.push({
                 timestamp: currentTime.toISOString(),
-                description: `Order created.`
+                description: `Your order has been placed.`, // More personal and common phrasing
             });
 
             if (state === 'Delivered') {
                 newOrder.deliveredAt = currentTime.toISOString();
                 newOrder.updates.push({
                     timestamp: currentTime.toISOString(),
-                    description: `Order marked as Delivered.`
+                    description: `Your order has been delivered!`, // Direct, personal, and adds a positive tone
                 });
             }
 

@@ -43,59 +43,52 @@ module.exports = {
                 return interaction.editReply({ content: `Order with ID \`${orderId}\` not found.`, ephemeral: true });
             }
 
-            const oldOrder = { ...orders[orderIndex] }; // Create a copy of the old order
-            const updatedOrder = { ...oldOrder }; // Start with a copy to modify
+            const oldOrder = { ...orders[orderIndex] };
+            const updatedOrder = { ...oldOrder };
 
             const oldState = updatedOrder.state;
-            updatedOrder.state = newState; // Update the state
+            updatedOrder.state = newState;
 
-            // Logic for deliveredAt timestamp
             if (newState === 'Delivered') {
-                // Set deliveredAt only if it's becoming 'Delivered' now
                 if (oldState !== 'Delivered') {
                     updatedOrder.deliveredAt = currentTime.toISOString();
-                    // Add update entry for state change to Delivered
                     updatedOrder.updates.push({
                         timestamp: currentTime.toISOString(),
-                        description: `State changed to Delivered.`
+                        description: `Your order has been delivered!`, 
                     });
                 } else {
-                    // If already delivered, just add a generic update if state is same but command was run
                     updatedOrder.updates.push({
                         timestamp: currentTime.toISOString(),
-                        description: `State confirmed as Delivered.`
+                        description: `Order delivery confirmed.`,
                     });
                 }
             } else {
-                // If state is changed from 'Delivered' to something else, remove deliveredAt
                 if (updatedOrder.deliveredAt) {
                     delete updatedOrder.deliveredAt;
                     updatedOrder.updates.push({
                         timestamp: currentTime.toISOString(),
-                        description: `State changed from Delivered to ${newState}.`
+                        description: `Order status changed from Delivered to ${newState}.`,
                     });
                 } else if (oldState !== newState) {
-                     // Add update entry for general state change (not involving Delivered transition)
                     updatedOrder.updates.push({
                         timestamp: currentTime.toISOString(),
-                        description: `State changed from ${oldState} to ${newState}.`
+                        description: `Order status updated to ${newState}.`,
                     });
                 } else {
                     updatedOrder.updates.push({
                         timestamp: currentTime.toISOString(),
-                        description: `Order state re-confirmed as ${newState}.`
+                        description: `Order status confirmed as ${newState}.`,
                     });
                 }
             }
 
-            orders[orderIndex] = updatedOrder; // Update the order in the array
-            await db.set('ordersList', orders); // Save updated list back to quick.db
+            orders[orderIndex] = updatedOrder;
+            await db.set('ordersList', orders);
 
-            // --- Create the embed for the response ---
             const orderEmbed = createEmbed({
                 title: `Order State Updated!`,
                 description: `Order \`${updatedOrder.orderId}\` state changed from \`${oldState}\` to \`${updatedOrder.state}\`.`,
-                color: '#3498DB', // A blue color for updates
+                color: '#3498DB',
                 fields: [
                     { name: 'Order ID', value: `\`${updatedOrder.orderId}\``, inline: false },
                     { name: 'Order Name', value: updatedOrder.orderName, inline: true },
@@ -107,7 +100,6 @@ module.exports = {
                 timestamp: true
             });
 
-            // Add deliveredAt field if it exists
             if (updatedOrder.deliveredAt) {
                 orderEmbed.addFields({ name: 'Delivered At', value: new Date(updatedOrder.deliveredAt).toLocaleString(), inline: false });
             }
