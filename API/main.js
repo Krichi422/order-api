@@ -52,6 +52,11 @@ async function initializeDatabase() {
         await ordersDb.set('ordersList', []);
         console.log('API: Initial ordersList created in shared quick.db (if it didn\'t exist).');
     }
+
+    if (!(await ordersDb.has('custom-settings'))) {
+        await ordersDb.set('custom-settings', {});
+        console.log('API: Initial custom-settings created in shared quick.db (if it didn\'t exist).');
+    }
 }
 
 app.get('/', async (req, res) => {
@@ -87,6 +92,17 @@ app.get('/orders', async (req, res) => {
         res.status(500).json({ error: "Internal server error while fetching orders." });
     }
 });
+
+app.get('/custom-settings', async (req, res) => {
+    try {
+        const custom_settings = await ordersDb.get('custom-settings')
+
+        res.json(custom_settings || {})
+    } catch(error) {
+        console.error('API: Error fetching custom settings from shared DB:', error);
+        res.status(500).json({ error: "Internal server error while fetching custom settings." });
+    }
+})
 
 app.post('/echo', async (req, res) => {
     if (req.body) {

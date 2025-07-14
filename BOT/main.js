@@ -19,10 +19,9 @@ const client = new Client({
     ],
 });
 
-// Attach a Collection to the client to store commands
 client.commands = new Collection();
 client.db = new QuickDB()
-// Store API_BASE_URL on the client for easy access in commands
+
 client.apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8000';
 
 async function cleanupDeliveredOrders() {
@@ -34,7 +33,7 @@ async function cleanupDeliveredOrders() {
         }
 
         const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - DELIVERY_RETENTION_DAYS); // Calculate the cutoff date
+        cutoffDate.setDate(cutoffDate.getDate() - DELIVERY_RETENTION_DAYS); 
 
         const ordersToDelete = [];
         const remainingOrders = [];
@@ -50,10 +49,6 @@ async function cleanupDeliveredOrders() {
                         remainingOrders.push(order);
                     }
                 } else {
-                    // If state is 'Delivered' but deliveredAt is missing,
-                    // consider it for immediate deletion or update deliveredAt
-                    // For now, we'll keep it if no deliveredAt, but log a warning.
-                    // In a real app, you might want to set deliveredAt to createdAt if missing.
                     console.warn(`Order ID ${order.orderId} is 'Delivered' but missing 'deliveredAt' timestamp.`);
                     remainingOrders.push(order);
                 }
@@ -77,18 +72,14 @@ async function cleanupDeliveredOrders() {
     }
 }
 
-// --- Event Handlers ---
 
-// When the bot is ready
 client.once('ready', async () => {
     console.log(`Discord Bot logged in as ${client.user.tag}!`);
     console.log(`API Base URL: ${client.apiBaseUrl}`);
 
-    // Load commands from files
     await loadCommands(client);
     console.log(`Loaded ${client.commands.size} commands.`);
 
-    // Register commands with Discord API
     await registerCommands(client, CLIENT_ID, GUILD_ID);
     console.log('Application (/) commands registered.');
 
@@ -97,9 +88,8 @@ client.once('ready', async () => {
     console.log(`Scheduled delivered order cleanup to run every ${CLEANUP_INTERVAL_MS / (1000 * 60 * 60)} hours.`);
 });
 
-// When an interaction is created (this is where slash commands are handled)
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isChatInputCommand()) return; // Only handle slash commands
+    if (!interaction.isChatInputCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
 
@@ -128,5 +118,4 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
-// Log in to Discord with your bot's token
 client.login(DISCORD_BOT_TOKEN);
